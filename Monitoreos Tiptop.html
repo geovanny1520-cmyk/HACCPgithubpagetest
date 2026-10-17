@@ -1,0 +1,613 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Monitoreos Tiptop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: banda verde de cabecera, pestañas tipo señalización, y por módulo una ruta de decisión (izquierda) junto a la ficha de límites (derecha). */
+:root{
+  --bg:#F2F7F1; --surface:#FFFFFF; --ink:#14281C; --muted:#566B5D; --line:#D2DFD4;
+  --green:#00803B; --green-deep:#0A4A28; --green-soft:#E1F1E5; --leaf:#8CC63F;
+  --on-green:#FFFFFF; --focus:#0A4A28;
+  --ok:#00793A; --ok-bg:#E1F1E5;
+  --warn:#9A5B00; --warn-bg:#FFF0D2;
+  --dev:#B8232A; --dev-bg:#FCE4E3;
+  --hdr-bg:#0A4A28; --hdr-ink:#FFFFFF; --hdr-muted:#B7D8C2;
+  --f-display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1710; --surface:#122219; --ink:#E4F0E7; --muted:#8FA897; --line:#24402E;
+    --green:#3DBE73; --green-deep:#0E3A21; --green-soft:#16301F; --leaf:#9AD14F;
+    --on-green:#04210F; --focus:#9AD14F;
+    --ok:#4CCB80; --ok-bg:#133222;
+    --warn:#E8A33D; --warn-bg:#3A2B10;
+    --dev:#FF8085; --dev-bg:#3D1A1C;
+    --hdr-bg:#0E3A21; --hdr-ink:#FFFFFF; --hdr-muted:#9FC9AD;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1710; --surface:#122219; --ink:#E4F0E7; --muted:#8FA897; --line:#24402E;
+  --green:#3DBE73; --green-deep:#0E3A21; --green-soft:#16301F; --leaf:#9AD14F;
+  --on-green:#04210F; --focus:#9AD14F;
+  --ok:#4CCB80; --ok-bg:#133222;
+  --warn:#E8A33D; --warn-bg:#3A2B10;
+  --dev:#FF8085; --dev-bg:#3D1A1C;
+  --hdr-bg:#0E3A21; --hdr-ink:#FFFFFF; --hdr-muted:#9FC9AD;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+h1,h2,h3,h4,p{margin:0}
+
+/* Cabecera */
+.hdr{background:var(--hdr-bg);color:var(--hdr-ink)}
+.hdr .wrap{padding-block:22px 20px;display:grid;gap:14px}
+.eyebrow{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--hdr-muted)}
+.hdr h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,52px);line-height:1;text-wrap:balance}
+.hdr .sub{color:var(--hdr-muted);max-width:60ch}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.st{display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border:1px solid rgba(255,255,255,.28);border-radius:4px;font-size:14px;font-weight:500}
+.st i{width:9px;height:9px;border-radius:50%;background:var(--leaf);display:inline-block}
+.st.pend i{background:#F2B544}
+.st.part i{background:transparent;border:2px solid var(--leaf)}
+
+/* Pestañas */
+.tabbar{border-bottom:1px solid var(--line);background:var(--surface)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
+.tab{flex:none;background:none;border:0;border-bottom:4px solid transparent;padding:13px 14px 9px;font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--green)}
+.tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
+
+main.wrap{padding-block:22px 40px;display:grid;gap:18px}
+.ptitle{display:grid;gap:4px}
+.ptitle .k{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+.ptitle h2{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4.4vw,36px);line-height:1.05;text-wrap:balance}
+.ptitle p{color:var(--muted);max-width:68ch}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:780px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}
+.card h3.ch{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
+/* Límites */
+.limits{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.lim{background:var(--green-soft);border-radius:5px;padding:11px 12px;display:grid;gap:2px;min-width:0}
+.lim .l{font-size:13px;color:var(--muted);font-weight:500}
+.lim .v{font-family:var(--f-mono);font-weight:500;font-size:22px;line-height:1.15;color:var(--ink);overflow-wrap:anywhere}
+.lim .v small{font-size:13px;color:var(--muted);margin-left:3px}
+
+dl.ficha{margin:0;display:grid;gap:12px}
+dl.ficha div{display:grid;gap:2px}
+dl.ficha dt{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+dl.ficha dd{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:3px 9px;font-size:14px}
+
+.callout{background:var(--warn-bg);color:var(--ink);border-radius:5px;padding:11px 13px;font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.callout b{color:var(--warn)}
+
+/* Ruta de decisión */
+.route h3.ch{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mini{display:flex;gap:8px}
+.mini button{background:none;border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:14px;font-weight:500;color:var(--muted)}
+.mini button:hover:not(:disabled){color:var(--ink);border-color:var(--muted)}
+.mini button:disabled{opacity:.4;cursor:default}
+.trail{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.trail li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted)}
+.trail .a{flex:none;font-family:var(--f-mono);font-size:12px;padding:1px 7px;border-radius:3px;margin-top:2px}
+.a.yes{background:var(--ok-bg);color:var(--ok)} .a.no{background:var(--dev-bg);color:var(--dev)}
+.qbox{outline:none}
+.qstep{font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+.q{font-family:var(--f-display);font-weight:700;font-size:clamp(25px,4vw,31px);line-height:1.1;margin:4px 0 16px;text-wrap:balance}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{min-height:52px;border-radius:5px;border:2px solid var(--green);font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+.btn.yes{background:var(--green);color:var(--on-green)}
+.btn.yes:hover{filter:brightness(1.08)}
+.btn.no{background:var(--surface);color:var(--dev);border-color:var(--dev)}
+.btn.no:hover{background:var(--dev-bg)}
+.btn.sec{min-height:44px;font-size:17px;background:var(--surface);color:var(--green);margin-top:14px;padding:0 18px}
+
+/* Resultado */
+.res{border:1px solid var(--line);border-radius:6px;overflow:hidden;outline:none}
+.res-h{display:flex;gap:12px;align-items:center;padding:14px 16px}
+.res-h svg{flex:none}
+.res .tag{font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase}
+.res h3{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.05}
+.res.ok .res-h{background:var(--ok-bg);color:var(--ok)}
+.res.dev .res-h{background:var(--dev-bg);color:var(--dev)}
+.res.warn .res-h{background:var(--warn-bg);color:var(--warn)}
+.res h3,.res .tag{color:inherit}
+.res-b{padding:6px 16px 16px;display:grid;gap:14px;background:var(--surface)}
+.grp h4{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+.grp ul{margin:0;padding:0;list-style:none;display:grid;gap:7px}
+.grp li{position:relative;padding-left:22px}
+.grp li::before{content:"";position:absolute;left:3px;top:.52em;width:8px;height:8px;border-right:2.5px solid var(--green);border-top:2.5px solid var(--green);transform:rotate(45deg) scale(.8);transform-origin:center}
+.tbc{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--warn-bg);color:var(--warn);padding:1px 7px;border-radius:3px;margin-left:4px;white-space:nowrap}
+
+/* Flujo completo */
+details.flowbox{border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+details.flowbox summary{cursor:pointer;padding:13px 18px;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+details.flowbox[open] summary{border-bottom:1px solid var(--line)}
+.flow{padding:16px 18px 18px;overflow-x:auto}
+.fq{font-weight:600}
+.fbr{display:grid;gap:10px;margin:10px 0 0 6px;padding-left:14px;border-left:2px solid var(--line)}
+.fb{display:flex;gap:10px;align-items:flex-start}
+.fc{flex:1;min-width:0}
+.lab{flex:none;font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:3px;margin-top:1px}
+.lab.yes{background:var(--ok-bg);color:var(--ok)} .lab.no{background:var(--dev-bg);color:var(--dev)}
+.rp{display:inline-flex;align-items:center;gap:7px;text-align:left;border:1px solid transparent;border-radius:4px;padding:5px 10px;font-weight:600;font-size:15px}
+.rp svg{width:16px;height:16px;flex:none}
+.rp.ok{background:var(--ok-bg);color:var(--ok)} .rp.dev{background:var(--dev-bg);color:var(--dev)} .rp.warn{background:var(--warn-bg);color:var(--warn)}
+.rp:hover{border-color:currentColor}
+
+/* Tablas */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+td.n,th.n{font-family:var(--f-mono);font-weight:500;white-space:nowrap}
+tbody tr:hover{background:var(--green-soft)}
+.pillg{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--green-soft);color:var(--ok);padding:2px 8px;border-radius:3px}
+
+/* Verificador */
+.form{display:grid;gap:14px}
+.field{display:grid;gap:5px}
+.field label{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+select,input[type=text]{width:100%;min-height:48px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:5px;padding:0 12px;font:inherit}
+input.num{font-family:var(--f-mono);font-size:22px;font-weight:500}
+.inrow{display:flex;align-items:center;gap:10px}
+.inrow .u{font-family:var(--f-mono);color:var(--muted);min-width:44px}
+.hint{font-size:13px;color:var(--muted)}
+.verdict{min-height:120px}
+
+/* Práctica */
+.prog{display:flex;justify-content:space-between;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:8px 0 16px}
+.bar i{display:block;height:100%;background:var(--green)}
+.opts{display:grid;gap:9px}
+.opt{text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:5px;padding:12px 14px;font-weight:500}
+.opt:hover:not(:disabled){border-color:var(--green)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--dev);background:var(--dev-bg)}
+.expl{margin-top:14px;padding:12px 14px;border-radius:5px;background:var(--bg);border:1px solid var(--line)}
+.expl b{display:block;margin-bottom:3px}
+.score{font-family:var(--f-display);font-weight:700;font-size:64px;line-height:1}
+
+/* Pendientes */
+.todo{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.todo label{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.todo input{width:20px;height:20px;margin-top:2px;accent-color:var(--green);flex:none}
+.todo input:checked + span{color:var(--muted);text-decoration:line-through}
+.todo .t{font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.slot{border:2px dashed var(--line);border-radius:5px;padding:12px;display:grid;gap:3px}
+.slot b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.slot span{color:var(--warn);font-weight:600}
+.foot{font-size:13px;color:var(--muted);padding-top:6px}
+@media (prefers-reduced-motion:no-preference){.res{animation:rise .22s ease-out}@keyframes rise{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+
+<header class="hdr">
+  <div class="wrap">
+    <div class="eyebrow">Cargill · Planta Tiptop · Calidad</div>
+    <h1>Monitoreos Tiptop</h1>
+    <p class="sub">Qué se mide, cada cuánto, cuándo es desviación y qué se hace. Responde sí o no y llegas a la acción.</p>
+    <div class="status" aria-label="Estado de los datos">
+      <span class="st"><i></i>PCC#1 cargado</span>
+      <span class="st pend"><i></i>PCC#2 pendiente</span>
+      <span class="st"><i></i>PCC#3 cargado</span>
+      <span class="st part"><i></i>PPRO: 1 de varios</span>
+    </div>
+  </div>
+</header>
+<nav class="tabbar" aria-label="Secciones"><div class="wrap"><div class="tabs" role="tablist" id="tabs"></div></div></nav>
+<main class="wrap" id="panel" aria-live="polite"></main>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Iconos ---------- */
+var ICON={
+  ok:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="currentColor"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dev:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M8.5 1.5h7L22.5 8.5v7L15.5 22.5h-7L1.5 15.5v-7z" fill="currentColor"/><path d="M8.2 8.2l7.6 7.6M15.8 8.2l-7.6 7.6" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 2L23 21H1z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9v5.5M12 17.2v.6" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round"/></svg>'
+};
+function small(t){return ICON[t].replace('width="30" height="30"','width="16" height="16"');}
+
+/* ---------- Datos ---------- */
+var TBC=function(t){return {t:t,tbc:1};};
+var MODS={
+  pcc1:{
+    k:'PCC#1', title:'Temperatura de carcasa y ácido peracético',
+    lead:'Salida del chiller (temperatura) y finish chiller (ácido peracético).',
+    limits:[
+      {l:'Temperatura de carcasa',v:'≤ 6.6',u:'°C'},
+      {l:'Ácido peracético',v:'≥ 400',u:'ppm'},
+      {l:'Frecuencia',v:'1 h',u:'10 carcasas'}
+    ],
+    ficha:[
+      ['Qué se mide','Temperatura de carcasas y concentración de ácido peracético'],
+      ['Dónde','Salida del chiller · finish chiller'],
+      ['Cada cuánto','Cada hora, 10 carcasas a la salida del chiller'],
+      ['Registro','Formato de monitoreo escrito. No cumplir la frecuencia es desviación']
+    ],
+    extra:'<div class="callout"><span aria-hidden="true">⚠</span><div><b>Regla de proceso.</b> Pollo mayor a 5.0 lb: se baja la velocidad de la cadena.</div></div>',
+    start:'q1',
+    nodes:{
+      q1:{q:'¿Se hizo el monitoreo en la hora que toca (10 carcasas y ácido peracético)?',yes:'q2',no:'r_freq'},
+      q2:{q:'¿Las carcasas salen del chiller a 6.6 °C o menos?',yes:'q3',no:'r_temp'},
+      q3:{q:'¿El ácido peracético del finish chiller está en 400 ppm o más?',yes:'r_ok',no:'r_apa'}
+    },
+    results:{
+      r_ok:{t:'ok',tag:'Conforme',title:'Dentro de límite',g:[
+        {h:'Haz',i:['Registrar en el formato escrito','Continuar. Próximo monitoreo en 1 hora']}]},
+      r_freq:{t:'dev',tag:'Desviación',title:'Monitoreo omitido',g:[
+        {h:'Qué es',i:['No cumplir la frecuencia ya es desviación']},
+        {h:'Haz',i:['Registrar la desviación',TBC('Aplicar el manejo de desviación de PCC#1 (ramas de temperatura y ácido peracético)')]}]},
+      r_temp:{t:'dev',tag:'Desviación',title:'Temperatura sobre 6.6 °C',g:[
+        {h:'Avisar',i:['Coordinador de área: cierra la estación de fresco','Coordinador de enfriamiento: paro del chiller para que la carcasa recupere temperatura']},
+        {h:'Producto',i:['Retener el fresco procesado desde el último monitoreo hasta encontrar la desviación','Carcasas desviadas a cámara fresca hasta 6.6 °C o menos','O enviarlas directo a IQF empacado como congelado']},
+        {h:'Corrección',i:['Mantenimiento preventivo del equipo de enfriamiento','Asegurar su correcto funcionamiento','Pollo mayor a 5.0 lb: bajar velocidad de la cadena']},
+        {h:'Registro',i:['Llenar el registro de monitoreo escrito']}]},
+      r_apa:{t:'dev',tag:'Desviación',title:'Ácido peracético bajo 400 ppm',g:[
+        {h:'Proceso',i:['Detener el chiller','Bajar la velocidad de la cadena hasta alcanzar la concentración (400 ppm o más)']},
+        {h:'Avisar',i:['Coordinador de área y coordinador de enfriamiento']},
+        {h:'Producto',i:[TBC('Retener el fresco procesado desde el último monitoreo, igual que en temperatura')]},
+        {h:'Registro',i:['Llenar el registro de monitoreo escrito']}]}
+    }
+  },
+  pcc3:{
+    k:'PCC#3', title:'Detector de metales',
+    lead:'Empaque, IQF y marinado. Se revisa en cada monitoreo y en cada verificación.',
+    limits:[
+      {l:'Monitoreo',v:'6',u:'momentos'},
+      {l:'Verificación',v:'4',u:'veces por turno'},
+      {l:'Revisar',v:'3',u:'puntos'}
+    ],
+    ficha:[
+      ['Cuándo monitorear','<div class="chips"><span class="chip">Inicio de cada proceso</span><span class="chip">Arranque de cada cambio de producto</span><span class="chip">Cada hora si el mismo producto pasa de 1 h</span><span class="chip">Tras reparación o ajuste del detector</span><span class="chip">Después de un corte de energía</span><span class="chip">Al finalizar el proceso</span></div>'],
+      ['Qué revisar en cada monitoreo y verificación','<div class="chips"><span class="chip">Alarma audio / visual</span><span class="chip">Producto en pantalla = producto en banda</span><span class="chip">Bandeja de rechazo activa, o la banda se detiene</span></div>'],
+      ['Acciones correctivas','Calibrar los patrones del equipo · verificación anual del equipo · mantenimiento preventivo programado']
+    ],
+    extraTable:true,
+    start:'q1',
+    nodes:{
+      q1:{q:'¿Hay monitoreo escrito y se cumplió la frecuencia?',yes:'q2',no:'r_dev'},
+      q2:{q:'¿El producto en banda coincide con el programado en el detector?',yes:'q3',no:'r_dev'},
+      q3:{q:'Al pasar el patrón de verificación, ¿se activa el rechazo (bandeja o paro de banda)?',yes:'q4',no:'r_dev'},
+      q4:{q:'¿Se activa la alarma visual y auditiva?',yes:'r_ok',no:'r_nc'}
+    },
+    results:{
+      r_ok:{t:'ok',tag:'Conforme',title:'Detector funcionando',g:[
+        {h:'Haz',i:['Registrar el monitoreo por escrito','Continuar. Siguiente monitoreo según el momento que toque']}]},
+      r_dev:{t:'dev',tag:'Desviación',title:'Detector fuera de control',g:[
+        {h:'Línea',i:['Detener la línea']},
+        {h:'Avisar',i:['Coordinador o supervisor de proceso secundario','Monitor de calidad','Técnico de mantenimiento']},
+        {h:'Producto',i:['Identificar lo que pasó desde el último monitoreo','Retenerlo y pasarlo de nuevo por el detector']},
+        {h:'Corrección',i:['Calibrar los patrones del equipo','Cumplir el mantenimiento preventivo programado']}]},
+      r_nc:{t:'warn',tag:'No conformidad',title:'Alarma sin activarse',g:[
+        {h:'Qué es',i:['La alarma visual o auditiva no se activa']},
+        {h:'Haz',i:['Detener el proceso','Reportar a mantenimiento para que verifique el equipo',TBC('Identificar lo procesado desde el último monitoreo, retenerlo y repasarlo, como en desviación')]}]}
+    }
+  },
+  ppro:{
+    k:'PPRO', title:'Verificación de temperaturas y concentraciones',
+    lead:'Primer PPRO cargado. Faltan varios.',
+    limits:[
+      {l:'Frecuencia',v:'2',u:'veces al día'},
+      {l:'Congelados',v:'Prom. 10',u:'muestras'},
+      {l:'Liberación',v:'En rango',u:'para liberar'}
+    ],
+    ficha:[
+      ['Temperatura','Termómetro calibrado para frío. Muestras al azar en distintos puntos'],
+      ['Congelados (IQF y blast freezers)','Temperatura promedio de 10 muestras, con termómetro calibrado'],
+      ['Concentración','Cinta reactiva al químico o titulación, en distintas áreas'],
+      ['Si hay desviación','Corregir. Producto, equipo o área se libera solo cuando esté dentro de parámetros']
+    ],
+    extraTable:true,
+    start:'q1',
+    nodes:{
+      q1:{q:'¿El valor medido está dentro del límite?',yes:'r_ok',no:'q2'},
+      q2:{q:'¿Ya se corrigió y quedó dentro de parámetros?',yes:'r_lib',no:'r_hold'}
+    },
+    results:{
+      r_ok:{t:'ok',tag:'Conforme',title:'Dentro de límite',g:[
+        {h:'Haz',i:['Registrar y continuar','Próxima verificación en el mismo día (2 veces al día)']}]},
+      r_hold:{t:'dev',tag:'Desviación',title:'En espera de corrección',g:[
+        {h:'Haz',i:['Corregir la desviación (temperatura o concentración)','Mantener producto, equipo o área sin liberar','Medir de nuevo hasta quedar en rango']}]},
+      r_lib:{t:'ok',tag:'Liberado',title:'Ya está en parámetros',g:[
+        {h:'Haz',i:['Liberar el producto, equipo o área','Registrar la corrección']}]}
+    }
+  }
+};
+
+var PPRO_ROWS=[
+  ['Cloro','Recipientes de desinfección de producto: enfriamiento, empaque, marinado','20–50 ppm'],
+  ['Whisper','Estaciones de herramientas y guantes: pediluvio entrada, pediluvio hielera, recipiente de guantes en enfriamiento, tinas y recipientes de herramientas en empaque, tina de herramientas Food Services, recipiente de herramientas en descongelador/marinado','200–400 ppm'],
+  ['Cloro libre residual','Agua del pasillo sanitario, agua para marinador, agua para marinador en descongelador, hielo (potabilidad)','1.0–5.0 ppm'],
+  ['Ácido peracético','Carrito Multivac, carrito Food Services','100–200 ppm'],
+  ['Temperatura ambiente','Enfriamiento, empaque, marinado/descongelador','≤ 10 °C'],
+  ['Temperatura de producto','Producto en tránsito de empaque, en sala de descongelador, en tránsito de marinado','≤ 6.0 °C'],
+  ['Temperatura','Salmuera INY#1, INY#3, INY#7','≤ 2.0 °C'],
+  ['Temperatura','Salmuera INY#2','≤ 4.0 °C'],
+  ['Temperatura','Salsa rostipollo','≤ 2.0 °C']
+];
+
+var PARAMS=[
+  {n:'Temperatura de carcasa, salida del chiller',g:'PCC#1',u:'°C',max:6.6,go:['yes','no'],mod:'pcc1'},
+  {n:'Ácido peracético, finish chiller',g:'PCC#1',u:'ppm',min:400,go:['yes','yes','no'],mod:'pcc1'},
+  {n:'Cloro, recipientes de desinfección de producto',g:'PPRO',u:'ppm',min:20,max:50},
+  {n:'Whisper, estaciones de herramientas y guantes',g:'PPRO',u:'ppm',min:200,max:400},
+  {n:'Cloro libre residual (agua, marinador, hielo)',g:'PPRO',u:'ppm',min:1,max:5},
+  {n:'Ácido peracético, carritos Multivac y Food Services',g:'PPRO',u:'ppm',min:100,max:200},
+  {n:'Temperatura ambiente',g:'PPRO',u:'°C',max:10},
+  {n:'Temperatura de producto',g:'PPRO',u:'°C',max:6},
+  {n:'Salmuera INY#1, INY#3 e INY#7',g:'PPRO',u:'°C',max:2},
+  {n:'Salmuera INY#2',g:'PPRO',u:'°C',max:4},
+  {n:'Salsa rostipollo',g:'PPRO',u:'°C',max:2}
+];
+
+var PEND=[
+  ['PCC#2','No tengo sus datos todavía. Falta todo: qué se mide, límite, frecuencia y acciones'],
+  ['PPRO restantes','Solo cargamos uno. Faltan los demás'],
+  ['Temperatura de congelados','Se promedian 10 muestras, pero no hay límite de temperatura'],
+  ['Empaque, detector de metales','Cada metal tiene dos valores (5.0/4, 5.0/3, 6.0/5 mm). Confirmar a qué corresponde cada uno'],
+  ['PCC#1, temperatura','Confirmar si el límite de 6.6 °C aplica a cada carcasa o al promedio de las 10'],
+  ['PCC#1, ácido peracético','Confirmar si la retención de producto desde el último monitoreo aplica igual que en temperatura'],
+  ['PCC#1, monitoreo omitido','Confirmar qué se hace además de registrar la desviación'],
+  ['PCC#3, alarma sin activarse','Confirmar si se retiene y repasa el producto, igual que en desviación']
+];
+
+var PRACT=[
+  {q:'Las carcasas salen del chiller a 7.4 °C. ¿Qué haces primero?',c:'Aviso al coordinador de área (cierra fresco) y al de enfriamiento (paro del chiller)',o:['Registro y sigo con el monitoreo de la próxima hora','Subo la velocidad de la cadena','Muevo las carcasas a empaque y aviso al final del turno'],e:'Más de 6.6 °C es desviación de PCC#1. Se cierra la estación de fresco y se para el chiller para que la carcasa recupere temperatura.'},
+  {q:'Ácido peracético en el finish chiller: 350 ppm. ¿Qué haces?',c:'Detengo el chiller y bajo la velocidad de la cadena hasta alcanzar 400 ppm o más',o:['Sigo y mido de nuevo en una hora','Subo la velocidad para que el pollo pase menos tiempo','Acepto 300 ppm mientras se corrige'],e:'El límite es 400 ppm o más. Se detiene el chiller y se baja la velocidad de la cadena hasta recuperar la concentración.'},
+  {q:'Hay desviación de temperatura. ¿A dónde van las carcasas desviadas?',c:'A cámara fresca hasta 6.6 °C o menos, o directo a IQF empacado como congelado',o:['A empaque como fresco si se ven bien','Se descartan siempre','Se quedan en la línea hasta la próxima hora'],e:'Dos salidas: cámara fresca hasta recuperar 6.6 °C o menos, o IQF empacado como congelado.'},
+  {q:'En la misma desviación, ¿qué pasa con el fresco ya procesado?',c:'Se retiene todo lo procesado desde el último monitoreo hasta encontrar la desviación',o:['Solo se retiene lo que midió fuera de límite','Se libera si el siguiente monitoreo da conforme','No se retiene si ya salió del chiller'],e:'La retención cubre todo el fresco procesado desde el último monitoreo hasta el momento de la desviación.'},
+  {q:'El mismo producto lleva 70 minutos en la línea y no se ha monitoreado el detector de metales. ¿Qué es?',c:'Desviación: no se cumplió la frecuencia horaria',o:['Está bien, la frecuencia es por turno','No conformidad por alarma','No pasa nada si la verificación del turno ya se hizo'],e:'Si el mismo producto pasa de 1 hora, el monitoreo es cada hora. No cumplir la frecuencia es desviación.'},
+  {q:'El patrón de verificación pasa por el detector y no se activa el rechazo. ¿Qué haces?',c:'Detengo la línea, aviso a supervisor, monitor de calidad y mantenimiento, y repaso lo procesado desde el último monitoreo',o:['Repito el patrón hasta que rechace y sigo','Sigo y anoto la observación','Cambio el producto en pantalla y continúo'],e:'Es desviación. Se detiene la línea, se avisa, y lo que pasó desde el último monitoreo se retiene y pasa de nuevo por el detector.'},
+  {q:'Hubo un corte de energía y la línea volvió. ¿Qué haces con el detector de metales?',c:'Hago el monitoreo: después de un corte de energía es un momento obligatorio',o:['Nada, espero al siguiente cambio de producto','Espero a la verificación del turno','Solo lo hago si había producto en la banda'],e:'Los momentos de monitoreo incluyen inicio de proceso, cambio de producto, cada hora, tras reparación o ajuste, tras un corte de energía y al finalizar.'},
+  {q:'Whisper en la tina de herramientas de empaque: 150 ppm. ¿Qué haces?',c:'Corrijo y dejo la tina en espera hasta que esté entre 200 y 400 ppm',o:['Nada, 150 ppm es suficiente','La uso y corrijo después','La libero si está sobre 100 ppm'],e:'El límite de Whisper es 200 a 400 ppm. Se libera solo cuando esté dentro de parámetros.'},
+  {q:'Salmuera INY#2 a 3.5 °C. ¿Está conforme?',c:'Sí. INY#2 permite hasta 4.0 °C',o:['No, todas deben ser 2.0 °C o menos','No, el límite es 3.0 °C','Sí, pero solo si es salsa rostipollo'],e:'INY#1, INY#3 e INY#7 permiten hasta 2.0 °C. INY#2 permite hasta 4.0 °C.'}
+];
+
+/* ---------- Estado ---------- */
+var TABS=[['pcc1','PCC#1'],['pcc2','PCC#2'],['pcc3','PCC#3'],['ppro','PPRO'],['ver','Verificador'],['pra','Práctica'],['pen','Pendientes']];
+var state={tab:'pcc1',paths:{pcc1:[],pcc3:[],ppro:[]},ver:{p:0,v:'7.2',ex:true},pra:null};
+var store={
+  get:function(k){try{return localStorage.getItem(k);}catch(e){return null;}},
+  set:function(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+};
+var savedTab=store.get('tiptop-tab');
+if(savedTab&&TABS.some(function(t){return t[0]===savedTab;}))state.tab=savedTab;
+
+var $panel=document.getElementById('panel');
+var $tabs=document.getElementById('tabs');
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+/* ---------- Pestañas ---------- */
+function renderTabs(){
+  $tabs.innerHTML=TABS.map(function(t){
+    var sel=t[0]===state.tab;
+    return '<button class="tab" role="tab" id="tab-'+t[0]+'" aria-selected="'+sel+'" data-act="tab" data-t="'+t[0]+'">'+t[1]+(t[0]==='pcc2'?'<span class="dot" title="Pendiente"></span>':'')+'</button>';
+  }).join('');
+}
+
+/* ---------- Bloques ---------- */
+function titleBlock(k,t,p){return '<div class="ptitle"><span class="k">'+k+'</span><h2>'+t+'</h2><p>'+p+'</p></div>';}
+function limitsBlock(m){
+  return '<div class="card"><h3 class="ch">Límites y frecuencia</h3><div class="limits">'+m.limits.map(function(x){
+    return '<div class="lim"><span class="l">'+x.l+'</span><span class="v">'+x.v+'<small>'+x.u+'</small></span></div>';
+  }).join('')+'</div></div>';
+}
+function fichaBlock(m){
+  return '<div class="card"><h3 class="ch">Ficha</h3><dl class="ficha">'+m.ficha.map(function(f){
+    return '<div><dt>'+f[0]+'</dt><dd>'+f[1]+'</dd></div>';
+  }).join('')+'</dl></div>';
+}
+function resultHTML(r){
+  return '<div class="res '+r.t+'" id="live" tabindex="-1"><div class="res-h">'+ICON[r.t]+'<div><span class="tag">'+r.tag+'</span><h3>'+r.title+'</h3></div></div><div class="res-b">'+
+    r.g.map(function(g){
+      return '<div class="grp"><h4>'+g.h+'</h4><ul>'+g.i.map(function(i){
+        return typeof i==='string'?'<li>'+i+'</li>':'<li>'+i.t+' <span class="tbc">por confirmar</span></li>';
+      }).join('')+'</ul></div>';
+    }).join('')+'</div></div>';
+}
+function stepper(k){
+  var m=MODS[k],p=state.paths[k],cur=m.start,trail=[];
+  p.forEach(function(a){trail.push({q:m.nodes[cur].q,a:a});cur=m.nodes[cur][a];});
+  var res=m.results[cur];
+  var h='<div class="card route"><h3 class="ch"><span>Ruta de decisión</span><span class="mini"><button data-act="back" data-k="'+k+'"'+(p.length?'':' disabled')+'>Atrás</button><button data-act="reset" data-k="'+k+'"'+(p.length?'':' disabled')+'>Reiniciar</button></span></h3>';
+  if(trail.length){
+    h+='<ol class="trail">'+trail.map(function(t){
+      return '<li><span class="a '+t.a+'">'+(t.a==='yes'?'SÍ':'NO')+'</span><span>'+t.q+'</span></li>';
+    }).join('')+'</ol>';
+  }
+  if(res){
+    h+=resultHTML(res)+'<button class="btn sec" data-act="reset" data-k="'+k+'">Empezar de nuevo</button>';
+  }else{
+    h+='<div class="qbox" id="live" tabindex="-1"><span class="qstep">Pregunta '+(p.length+1)+'</span><p class="q">'+m.nodes[cur].q+'</p><div class="ans"><button class="btn yes" data-act="ans" data-k="'+k+'" data-a="yes">Sí</button><button class="btn no" data-act="ans" data-k="'+k+'" data-a="no">No</button></div></div>';
+  }
+  return h+'</div>';
+}
+function flow(k,id,acc){
+  var m=MODS[k],n=m.nodes[id];
+  return '<div class="fnode"><div class="fq">'+n.q+'</div><div class="fbr">'+['yes','no'].map(function(a){
+    var t=n[a],path=acc.concat([a]),r=m.results[t],inner;
+    if(r){inner='<button class="rp '+r.t+'" data-act="goto" data-k="'+k+'" data-path="'+path.join(',')+'">'+small(r.t)+'<span>'+r.title+'</span></button>';}
+    else{inner=flow(k,t,path);}
+    return '<div class="fb"><span class="lab '+a+'">'+(a==='yes'?'SÍ':'NO')+'</span><div class="fc">'+inner+'</div></div>';
+  }).join('')+'</div></div>';
+}
+function flowBlock(k){
+  return '<details class="flowbox"><summary>Ver todo el flujo</summary><div class="flow">'+flow(k,MODS[k].start,[])+'</div></details>';
+}
+function metalTable(){
+  return '<div class="card"><h3 class="ch">Sensibilidad por zona (mm)</h3><div class="tw"><table><thead><tr><th>Zona</th><th class="n">Fe</th><th class="n">No Fe</th><th class="n">Acero inox.</th></tr></thead><tbody>'+
+    '<tr><td>Empaque</td><td class="n">5.0 / 4</td><td class="n">5.0 / 3</td><td class="n">6.0 / 5</td></tr>'+
+    '<tr><td>IQF</td><td class="n">5.0</td><td class="n">5.0</td><td class="n">6.0</td></tr>'+
+    '<tr><td>Marinado</td><td class="n">4.0</td><td class="n">4.0</td><td class="n">5.0</td></tr>'+
+    '</tbody></table></div></div>';
+}
+function pproTable(){
+  return '<div class="card"><h3 class="ch">Límites por punto</h3><div class="tw"><table><thead><tr><th>Parámetro</th><th>Dónde</th><th class="n">Límite</th></tr></thead><tbody>'+
+    PPRO_ROWS.map(function(r){return '<tr><td><span class="pillg">'+r[0]+'</span></td><td>'+r[1]+'</td><td class="n">'+r[2]+'</td></tr>';}).join('')+
+    '</tbody></table></div></div>';
+}
+
+/* ---------- Paneles ---------- */
+function panelMod(k){
+  var m=MODS[k],left='',right='';
+  left=stepper(k)+flowBlock(k);
+  right=limitsBlock(m)+fichaBlock(m);
+  if(m.extra)right+=m.extra;
+  var below='';
+  if(k==='pcc3')right+=metalTable();
+  if(k==='ppro')below=pproTable();
+  return titleBlock(m.k,m.title,m.lead)+'<div class="grid"><div class="col">'+left+'</div><div class="col">'+right+'</div></div>'+below;
+}
+function panelPcc2(){
+  var slots=['Qué se monitorea','Dónde y cómo','Frecuencia','Límite','Desviación','Acción inmediata','Acción correctiva','Registro'];
+  return titleBlock('PCC#2','Sin datos todavía','Cuando me pases los datos, esta sección se arma igual que PCC#1 y PCC#3.')+
+    '<div class="card"><h3 class="ch">Lo que hay que completar</h3><div class="slots">'+slots.map(function(s){return '<div class="slot"><b>'+s+'</b><span>Pendiente</span></div>';}).join('')+'</div></div>';
+}
+function limitText(p){
+  if(p.min!=null&&p.max!=null)return p.min+'–'+p.max+' '+p.u;
+  if(p.max!=null)return '≤ '+p.max+' '+p.u;
+  return '≥ '+p.min+' '+p.u;
+}
+function panelVer(){
+  var opts='',last='';
+  PARAMS.forEach(function(p,i){
+    if(p.g!==last){if(last)opts+='</optgroup>';opts+='<optgroup label="'+p.g+'">';last=p.g;}
+    opts+='<option value="'+i+'"'+(i===state.ver.p?' selected':'')+'>'+esc(p.n)+'</option>';
+  });
+  opts+='</optgroup>';
+  var p=PARAMS[state.ver.p];
+  return titleBlock('Verificador','¿Está dentro del límite?','Elige el parámetro, escribe el valor medido y mira el resultado.')+
+  '<div class="grid"><div class="card"><div class="form">'+
+    '<div class="field"><label for="vp">Parámetro</label><select id="vp">'+opts+'</select></div>'+
+    '<div class="field"><label for="vv">Valor medido</label><div class="inrow"><input class="num" id="vv" type="text" inputmode="decimal" autocomplete="off" value="'+esc(state.ver.v)+'"><span class="u" id="vu">'+p.u+'</span></div>'+
+    '<span class="hint" id="vh">'+(state.ver.ex?'Valor de ejemplo. Escribe el tuyo.':'')+'</span></div>'+
+    '<div class="hint">Límite: <b id="vl" style="font-family:var(--f-mono)">'+limitText(p)+'</b></div>'+
+  '</div></div><div class="col"><div class="verdict" id="verdict"></div></div></div>';
+}
+function updateVer(){
+  var p=PARAMS[state.ver.p],raw=state.ver.v.replace(',','.').trim(),v=parseFloat(raw),out=document.getElementById('verdict');
+  document.getElementById('vu').textContent=p.u;
+  document.getElementById('vl').textContent=limitText(p);
+  if(raw===''||isNaN(v)){out.innerHTML='<div class="card"><p class="hint">Escribe un número para ver el resultado.</p></div>';return;}
+  var side='';
+  if(p.max!=null&&v>p.max)side='por encima del máximo ('+p.max+' '+p.u+')';
+  if(p.min!=null&&v<p.min)side='por debajo del mínimo ('+p.min+' '+p.u+')';
+  if(!side){
+    out.innerHTML=resultHTML({t:'ok',tag:'Conforme',title:v+' '+p.u+' está dentro',g:[{h:'Haz',i:['Registrar y continuar con el monitoreo']}]}).replace(' id="live" tabindex="-1"','');
+    return;
+  }
+  var r;
+  if(p.go){
+    r={t:'dev',tag:'Desviación',title:v+' '+p.u+', '+side,g:[{h:'Siguiente paso',i:['Seguir la ruta de decisión de '+MODS[p.mod].k]}]};
+  }else{
+    r={t:'dev',tag:'Desviación',title:v+' '+p.u+', '+side,g:[{h:'Haz',i:['Corregir la desviación','Mantener producto, equipo o área sin liberar','Liberar solo cuando esté dentro de parámetros']}]};
+  }
+  out.innerHTML=resultHTML(r).replace(' id="live" tabindex="-1"','')+
+    '<button class="btn sec" data-act="goto" data-k="'+(p.go?p.mod:'ppro')+'" data-path="'+(p.go?p.go.join(','):'no')+'">Ver la ruta completa</button>';
+}
+function startPra(){
+  state.pra={i:0,score:0,sel:null,opts:null,done:false};
+  shuffleFor();
+}
+function shuffleFor(){
+  var s=PRACT[state.pra.i],arr=[{t:s.c,ok:1}].concat(s.o.map(function(x){return {t:x,ok:0};}));
+  for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
+  state.pra.opts=arr;
+}
+function panelPra(){
+  if(!state.pra)startPra();
+  var s=state.pra,total=PRACT.length;
+  if(s.done){
+    var msg=s.score===total?'Todo correcto.':s.score>=total*0.7?'Buen nivel. Repasa lo que fallaste.':'Repasa las rutas y vuelve a intentar.';
+    return titleBlock('Práctica','Resultado','')+'<div class="card"><div class="score">'+s.score+' / '+total+'</div><p style="margin-top:8px">'+msg+'</p><button class="btn sec" data-act="praRestart">Practicar de nuevo</button></div>';
+  }
+  var q=PRACT[s.i],answered=s.sel!==null;
+  var h=titleBlock('Práctica','¿Qué haces tú?','Decide antes de mirar la respuesta.')+'<div class="card"><div class="prog"><span>Pregunta '+(s.i+1)+' de '+total+'</span><span>Aciertos: '+s.score+'</span></div><div class="bar"><i style="width:'+(s.i/total*100)+'%"></i></div>'+
+    '<div class="qbox" id="live" tabindex="-1"><p class="q">'+q.q+'</p></div><div class="opts">'+s.opts.map(function(o,i){
+      var cls='opt';
+      if(answered){if(o.ok)cls+=' right';else if(i===s.sel)cls+=' wrong';}
+      return '<button class="'+cls+'" data-act="pick" data-i="'+i+'"'+(answered?' disabled':'')+'>'+o.t+'</button>';
+    }).join('')+'</div>';
+  if(answered){
+    var good=s.opts[s.sel].ok;
+    h+='<div class="expl"><b>'+(good?'Correcto':'No es esa')+'</b>'+q.e+'</div><button class="btn sec" data-act="praNext">'+(s.i+1===total?'Ver resultado':'Siguiente')+'</button>';
+  }
+  return h+'</div>';
+}
+function panelPen(){
+  var done={};try{done=JSON.parse(store.get('tiptop-pend')||'{}');}catch(e){}
+  var left=PEND.filter(function(_,i){return !done[i];}).length;
+  return titleBlock('Pendientes','Lo que falta completar',left+' de '+PEND.length+' sin resolver. Marca cada uno cuando lo tengas.')+
+    '<div class="card"><ul class="todo">'+PEND.map(function(p,i){
+      return '<li><label><input type="checkbox" data-act="pen" data-i="'+i+'"'+(done[i]?' checked':'')+'><span><span class="t">'+p[0]+'.</span> '+p[1]+'</span></label></li>';
+    }).join('')+'</ul></div><p class="foot">Las marcas se guardan solo en este navegador.</p>';
+}
+
+/* ---------- Render ---------- */
+function render(focus){
+  renderTabs();
+  var t=state.tab,h='';
+  if(t==='pcc2')h=panelPcc2();
+  else if(MODS[t])h=panelMod(t);
+  else if(t==='ver')h=panelVer();
+  else if(t==='pra')h=panelPra();
+  else if(t==='pen')h=panelPen();
+  h+='<p class="foot">Armado con los datos que aportaste. Confirma siempre contra el plan HACCP y los procedimientos vigentes de la planta.</p>';
+  $panel.innerHTML=h;
+  $panel.setAttribute('aria-labelledby','tab-'+t);
+  if(t==='ver')updateVer();
+  if(focus){var el=document.getElementById('live');if(el){try{el.focus({preventScroll:false});}catch(e){el.focus();}}}
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;
+  var a=b.getAttribute('data-act'),k=b.getAttribute('data-k');
+  if(a==='tab'){state.tab=b.getAttribute('data-t');store.set('tiptop-tab',state.tab);render(false);window.scrollTo(0,0);}
+  else if(a==='ans'){state.paths[k].push(b.getAttribute('data-a'));render(true);}
+  else if(a==='back'){state.paths[k].pop();render(true);}
+  else if(a==='reset'){state.paths[k]=[];render(true);}
+  else if(a==='goto'){state.tab=k;var p=b.getAttribute('data-path');state.paths[k]=p?p.split(','):[];store.set('tiptop-tab',k);render(true);}
+  else if(a==='pick'){var s=state.pra;if(s.sel!==null)return;s.sel=parseInt(b.getAttribute('data-i'),10);if(s.opts[s.sel].ok)s.score++;render(false);}
+  else if(a==='praNext'){var s2=state.pra;if(s2.i+1>=PRACT.length){s2.done=true;}else{s2.i++;s2.sel=null;shuffleFor();}render(true);}
+  else if(a==='praRestart'){startPra();render(true);}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='vp'){state.ver.p=parseInt(t.value,10);updateVer();}
+  if(t.getAttribute&&t.getAttribute('data-act')==='pen'){
+    var done={};try{done=JSON.parse(store.get('tiptop-pend')||'{}');}catch(x){}
+    done[t.getAttribute('data-i')]=t.checked?1:0;store.set('tiptop-pend',JSON.stringify(done));
+    var left=PEND.filter(function(_,i){return !done[i];}).length;
+    var pp=document.querySelector('.ptitle p');if(pp)pp.textContent=left+' de '+PEND.length+' sin resolver. Marca cada uno cuando lo tengas.';
+  }
+});
+document.addEventListener('input',function(e){
+  if(e.target.id==='vv'){state.ver.v=e.target.value;state.ver.ex=false;var h=document.getElementById('vh');if(h)h.textContent='';updateVer();}
+});
+
+render(false);
+})();
+</script>
+
+</body></html>
